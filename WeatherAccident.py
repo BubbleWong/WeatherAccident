@@ -1,7 +1,11 @@
+#!/usr/bin/env python3
+
+import sys
 import csv
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
+
 
 def load_csv(filename):
     data = []
@@ -10,6 +14,7 @@ def load_csv(filename):
         for row in reader:
             data.append(row)
     return data
+
 
 def load_traffic_data(filename):
     df = load_csv(filename)
@@ -27,7 +32,6 @@ def load_traffic_data(filename):
         traffic[m] = sum(curM) / len(curM)
     return [x[1] for x in sorted(traffic.items(), key=lambda x: int(x[0]))]
 
-traffic_data = load_traffic_data('traffic.csv')
 
 def load_climate_data(filename):
     df = load_csv(filename)
@@ -51,7 +55,7 @@ def load_climate_data(filename):
         if climate[m]['rain'].get(y) is None:
             climate[m]['rain'][y] = float(rain)
         if climate[m]['snow'].get(y) is None:
-            climate[m]['snow'][y] =  float(snow)
+            climate[m]['snow'][y] = float(snow)
     for m in climate:
         curT = climate[m]['temp'].values()
         curR = climate[m]['rain'].values()
@@ -63,18 +67,32 @@ def load_climate_data(filename):
         ]
     return [x[1] for x in sorted(climate.items(), key=lambda x: int(x[0]))]
 
-climate_data = load_climate_data('climate.csv')
+
+def main():
+    if len(sys.argv) != 4:
+        print("Please input the weather info, in the order of temperature, rain, and snow.")
+        print("Usage: python3 WeatherAccident.py <number1> <number2> <number3>")
+        print("Example: python3 WeatherAccident.py -7 44 8")
+        return
+    try:
+        temp = float(sys.argv[1])
+        rain = float(sys.argv[2])
+        snow = float(sys.argv[3])
+    except ValueError:
+        print("All arguments must be numbers.")
+        return
+
+    traffic_data = load_traffic_data('data/traffic.csv')
+    climate_data = load_climate_data('data/climate.csv')
+    model = make_pipeline(StandardScaler(), Ridge(alpha=1.0))
+    model.fit(climate_data, traffic_data)
+    res = model.predict([[temp, rain, snow]])
+    if res[0] < 0:
+        print("The prediction is negative, which is not possible. Try another input.")
+        return
+    print(
+        f'There should be `{round(res[0])}` traffic accidents in this month if the temperature was like that.')
 
 
-
-
-# print(climate_data)
-# print(traffic_data)
-
-model = make_pipeline(StandardScaler(), Ridge(alpha=1.0))
-model.fit(climate_data, traffic_data)
-
-
-print(model.predict([[0, 0, 0]]))
-
-# yay
+if __name__ == "__main__":
+    main()
